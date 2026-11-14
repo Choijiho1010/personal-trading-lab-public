@@ -1,0 +1,45 @@
+{
+  "updated": "2026-11-14",
+  "phases": [
+    {
+      "id": "bootstrap",
+      "status": "in_progress",
+      "exit": "루트 지침과 검증기, 합성 자료를 쓰는 Codex 실행 경로를 설치하고 검증한다.",
+      "evidence": [
+        "python3 scripts/validate.py: passed scaffold, phase records and synthetic response success/rejection checks"
+      ],
+      "pending": [
+        "공개용 환경의 실제 Codex 모델 호출은 미실행이며, 답변 품질과 전체 런타임 격리는 미평가다."
+      ]
+    },
+    {
+      "id": "development-quality",
+      "status": "in_progress",
+      "exit": "검사·Hook·CI를 재현하고 공개 파일 경계, PR 자동 리뷰와 원격 보호를 검증한다.",
+      "evidence": [
+        "uv run --frozen python scripts/quality.py check: Ruff lint and format passed; pytest 19 passed with synthetic data and a fake Codex process"
+      ],
+      "pending": [
+        "공개용 최초 커밋의 전체 이력 감사와 실제 Git Hook 실행은 아직 확인하지 않았다.",
+        "새 원격의 CI·Codex 자동 리뷰와 재리뷰·main 보호는 아직 확인하지 않았다.",
+        "AI 승인 자체를 필수 병합 게이트로 요구하는 기능은 미확인이다."
+      ]
+    },
+    {
+      "id": "ledger",
+      "status": "pending",
+      "exit": "합성 체결로 주문·체결·잔고 API, 중복 적재 및 응답 유실 대사를 검증한다."
+    },
+    {
+      "id": "graph",
+      "status": "pending",
+      "exit": "그래프를 다시 구축하고 기준일 및 근거 ID가 맞는지 고정 질의로 검증한다."
+    },
+    {
+      "id": "live",
+      "status": "unverified",
+      "exit": "증권사 공식 연결 요건을 확인하고 테스트 환경에서 주문과 대사를 검증한 뒤 사용자가 앱에서 주문하고 체결을 확인한다."
+    }
+  ],
+  "next_action": "공개용 이력과 새 원격에서 검사·자동 리뷰·main 보호를 검증한 뒤 합성 원장 설계로 진행한다."
+}

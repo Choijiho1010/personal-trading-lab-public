@@ -1,0 +1,28 @@
+default_install_hook_types: [pre-commit]
+repos:
+  - repo: local
+    hooks:
+      - id: staged-secrets
+        name: Scan staged content for secrets
+        entry: python3 scripts/quality.py staged
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+      - id: ruff-check
+        name: Ruff lint
+        entry: uv run --frozen ruff check
+        language: system
+        types: [python]
+        stages: [pre-commit]
+      - id: ruff-format
+        name: Ruff format check
+        entry: uv run --frozen ruff format --check
+        language: system
+        types: [python]
+        stages: [pre-commit]
+      - id: file-check
+        name: Validate public file content
+        entry: uv run --frozen python scripts/quality.py files
+        language: system
+        stages: [pre-commit]
