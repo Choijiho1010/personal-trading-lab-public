@@ -21,11 +21,12 @@
         "git commit and git push: pre-commit and pre-push passed staged-content scanning, history audit and the 19-test quality suite",
         "uv run --frozen python scripts/quality.py audit: initial root commit passed content and full-history checks; author and committer use GitHub noreply identities",
         "GitHub Actions Quality succeeded on 8b0b8661fa33c22d46122ce73543ece5739fbfbb: https://github.com/Choijiho1010/personal-trading-lab-public/actions/runs/43547458228",
-        "main protection is configured to require PRs, strict quality from GitHub Actions and resolved conversations for administrators as well; force pushes and deletion are disabled"
+        "main protection is configured to require PRs, strict quality from GitHub Actions and resolved conversations for administrators as well; force pushes and deletion are disabled",
+        "PR1 on 42a0ec4072cec897be7ce9e32485f5aebaa92f13: quality IN_PROGRESS corresponded to BLOCKED and quality SUCCESS to CLEAN; CI https://github.com/Choijiho1010/personal-trading-lab-public/actions/runs/43547922689",
+        "Codex automatic review completed without findings on 42a0ec4072cec897be7ce9e32485f5aebaa92f13, trigger PR opened: https://github.com/Choijiho1010/personal-trading-lab-public/pull/1#issuecomment-6870413144"
       ],
       "pending": [
-        "필수 quality 검사 완료 전후의 PR 병합 차단 동작을 검증한다.",
-        "Codex 자동 PR 리뷰와 새 커밋 재리뷰를 대상 SHA와 함께 검증한다.",
+        "새 커밋에 대한 Codex 자동 재리뷰를 대상 SHA와 함께 검증한다.",
         "AI 승인 자체를 필수 병합 게이트로 요구하는 기능은 미확인이다."
       ]
     },
