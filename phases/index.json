@@ -17,11 +17,15 @@
       "status": "in_progress",
       "exit": "검사·Hook·CI를 재현하고 공개 파일 경계, PR 자동 리뷰와 원격 보호를 검증한다.",
       "evidence": [
-        "uv run --frozen python scripts/quality.py check: Ruff lint and format passed; pytest 19 passed with synthetic data and a fake Codex process"
+        "uv run --frozen python scripts/quality.py check: Ruff lint and format passed; pytest 19 passed with synthetic data and a fake Codex process",
+        "git commit and git push: pre-commit and pre-push passed staged-content scanning, history audit and the 19-test quality suite",
+        "uv run --frozen python scripts/quality.py audit: initial root commit passed content and full-history checks; author and committer use GitHub noreply identities",
+        "GitHub Actions Quality succeeded on 8b0b8661fa33c22d46122ce73543ece5739fbfbb: https://github.com/Choijiho1010/personal-trading-lab-public/actions/runs/43547458228",
+        "main protection is configured to require PRs, strict quality from GitHub Actions and resolved conversations for administrators as well; force pushes and deletion are disabled"
       ],
       "pending": [
-        "공개용 최초 커밋의 전체 이력 감사와 실제 Git Hook 실행은 아직 확인하지 않았다.",
-        "새 원격의 CI·Codex 자동 리뷰와 재리뷰·main 보호는 아직 확인하지 않았다.",
+        "필수 quality 검사 완료 전후의 PR 병합 차단 동작을 검증한다.",
+        "Codex 자동 PR 리뷰와 새 커밋 재리뷰를 대상 SHA와 함께 검증한다.",
         "AI 승인 자체를 필수 병합 게이트로 요구하는 기능은 미확인이다."
       ]
     },
