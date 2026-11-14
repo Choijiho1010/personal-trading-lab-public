@@ -19,7 +19,7 @@
       "evidence": [
         "uv run --frozen python scripts/quality.py check: Ruff lint and format passed; pytest 19 passed with synthetic data and a fake Codex process",
         "git commit and git push: actual pre-commit and pre-push hooks passed staged-content scanning, full-history audit and the quality suite",
-        "uv run --frozen python scripts/quality.py audit: public content and new Git history passed forbidden-path and Gitleaks checks; author and committer metadata use GitHub noreply identities",
+        "uv run --frozen python scripts/quality.py audit: public content and new Git history passed forbidden-path and Gitleaks checks; commit metadata was checked against the intended public identity",
         "GitHub Actions Quality succeeded on 4604a706046de9af644063a81c85af5e9f0202c5: https://github.com/Choijiho1010/personal-trading-lab-public/actions/runs/43548188863",
         "main requires PRs, strict quality from GitHub Actions and resolved conversations, including administrators; force pushes and deletion are disabled. PR1 was BLOCKED while quality ran and CLEAN after success",
         "Codex automatic PR-open review on 42a0ec4072cec897be7ce9e32485f5aebaa92f13 and new-commit re-review on 4604a706046de9af644063a81c85af5e9f0202c5 completed without findings: https://github.com/Choijiho1010/personal-trading-lab-public/pull/1#issuecomment-6870413144",
