@@ -32,7 +32,8 @@
         "UV_NO_CACHE=1 uv run --frozen --offline python scripts/quality.py check passed Ruff and 24 tests. The error-boundary hook passed against the v1 contract and failed in a temporary repository when a staged 503 error code was changed.",
         "PR #2 first-demo commit c375289 passed pre-commit and pre-push, including the Gitleaks audit and 30 Python tests.",
         "PR #2 commit c375289 passed GitHub Actions Quality, including the React build and tests, Spring Boot build and tests, normal and timeout HTTP integration, and public history audit: https://github.com/Choijiho1010/personal-trading-lab-public/actions/runs/44192947194",
-        "Codex automatic PR review completed without findings on c375289: https://github.com/Choijiho1010/personal-trading-lab-public/pull/2#issuecomment-6963178451"
+        "Codex automatic PR review completed without findings on c375289: https://github.com/Choijiho1010/personal-trading-lab-public/pull/2#issuecomment-6963178451",
+        "After adding public-repository suitability to the PR review rules, python3 scripts/validate.py and the targeted quality.py files check passed for the review instructions."
       ],
       "pending": [
         "AI 승인 자체를 필수 병합 게이트로 요구하는 기능은 미확인이다."
