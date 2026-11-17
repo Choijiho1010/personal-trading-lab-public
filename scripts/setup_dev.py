@@ -1,5 +1,3 @@
-"""Install local Git exclusions and deterministic hooks."""
-
 import subprocess
 from pathlib import Path
 

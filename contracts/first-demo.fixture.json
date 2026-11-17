@@ -1,0 +1,28 @@
+{
+  "fill": {
+    "fill_id": "demo-fill-1",
+    "symbol": "SAMPLE",
+    "side": "BUY",
+    "quantity": 4,
+    "price_krw": 10000,
+    "filled_at": "2026-11-13T00:00:00Z",
+    "synthetic": true
+  },
+  "question": {
+    "question": "이 거래에서 몇 주 샀어?"
+  },
+  "research_request": {
+    "question": "이 거래에서 몇 주 샀어?",
+    "evidence": {
+      "fill_id": "demo-fill-1",
+      "symbol": "SAMPLE",
+      "side": "BUY",
+      "quantity": 4,
+      "filled_at": "2026-11-13T00:00:00Z"
+    }
+  },
+  "answer": {
+    "answer": "4주를 매수했습니다.",
+    "evidence_ids": ["demo-fill-1"]
+  }
+}

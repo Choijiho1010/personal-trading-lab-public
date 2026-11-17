@@ -13,6 +13,9 @@ htmlcov/
 coverage.xml
 build/
 dist/
+node_modules/
+.gradle/
+target/
 *.egg-info/
 .DS_Store
 *.sqlite*

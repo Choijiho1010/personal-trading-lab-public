@@ -26,3 +26,10 @@ repos:
         entry: uv run --frozen python scripts/quality.py files
         language: system
         stages: [pre-commit]
+      - id: error-boundary
+        name: Check API errors and Codex failure output
+        entry: uv run --frozen pytest -q tests/test_error_boundary.py
+        language: system
+        pass_filenames: false
+        files: '^(contracts/first-demo\.openapi\.yaml|scripts/ask\.py|tests/test_error_boundary\.py|\.pre-commit-config\.yaml)$'
+        stages: [pre-commit]

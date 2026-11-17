@@ -1,5 +1,3 @@
-"""Check the bootstrap and its synthetic input without external calls."""
-
 import json
 from pathlib import Path
 

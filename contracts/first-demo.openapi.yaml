@@ -1,0 +1,209 @@
+openapi: 3.1.0
+info:
+  title: Personal Trading Lab first demo
+  version: 0.1.0
+paths:
+  /api/v1/fills/{fill_id}:
+    parameters:
+      - $ref: '#/components/parameters/FillId'
+    get:
+      operationId: getFill
+      tags: [browser]
+      responses:
+        '200':
+          description: Synthetic fill
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Fill'
+        '404':
+          $ref: '#/components/responses/FillNotFound'
+  /api/v1/fills/{fill_id}/questions:
+    parameters:
+      - $ref: '#/components/parameters/FillId'
+    post:
+      operationId: askAboutFill
+      tags: [browser]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Question'
+      responses:
+        '200':
+          description: Answer with evidence from the selected fill
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Answer'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/FillNotFound'
+        '503':
+          $ref: '#/components/responses/ResearchUnavailable'
+  /internal/v1/research/questions:
+    post:
+      operationId: answerFillQuestion
+      tags: [internal]
+      parameters:
+        - name: X-Request-ID
+          in: header
+          required: true
+          schema:
+            $ref: '#/components/schemas/RequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResearchQuestion'
+      responses:
+        '200':
+          description: Answer that cites the supplied evidence
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Answer'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '503':
+          $ref: '#/components/responses/ResearchUnavailable'
+components:
+  parameters:
+    FillId:
+      name: fill_id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/FillId'
+  headers:
+    RequestId:
+      description: Server-generated request identifier for looking up diagnostics
+      required: true
+      schema:
+        $ref: '#/components/schemas/RequestId'
+  responses:
+    InvalidRequest:
+      description: Invalid question, request body, or required internal request header
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InvalidRequest'
+    FillNotFound:
+      description: Fill ID not found
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/FillNotFound'
+    ResearchUnavailable:
+      description: Research failed, timed out, or returned an invalid answer
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ResearchUnavailable'
+  schemas:
+    RequestId:
+      type: string
+      format: uuid
+    FillId:
+      type: string
+      minLength: 1
+    QuestionText:
+      type: string
+      minLength: 1
+      maxLength: 500
+      pattern: '\S'
+    FillFacts:
+      type: object
+      required: [fill_id, symbol, side, quantity, filled_at]
+      properties:
+        fill_id:
+          $ref: '#/components/schemas/FillId'
+        symbol:
+          type: string
+          minLength: 1
+        side:
+          const: BUY
+        quantity:
+          type: integer
+          minimum: 1
+        filled_at:
+          type: string
+          format: date-time
+    Fill:
+      allOf:
+        - $ref: '#/components/schemas/FillFacts'
+        - type: object
+          required: [price_krw, synthetic]
+          properties:
+            price_krw:
+              type: integer
+              minimum: 1
+            synthetic:
+              const: true
+      unevaluatedProperties: false
+    Question:
+      type: object
+      additionalProperties: false
+      required: [question]
+      properties:
+        question:
+          $ref: '#/components/schemas/QuestionText'
+    ResearchQuestion:
+      type: object
+      additionalProperties: false
+      required: [question, evidence]
+      properties:
+        question:
+          $ref: '#/components/schemas/QuestionText'
+        evidence:
+          allOf:
+            - $ref: '#/components/schemas/FillFacts'
+          unevaluatedProperties: false
+    Answer:
+      type: object
+      additionalProperties: false
+      required: [answer, evidence_ids]
+      properties:
+        answer:
+          type: string
+          minLength: 1
+          pattern: '\S'
+        evidence_ids:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            $ref: '#/components/schemas/FillId'
+    InvalidRequest:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code:
+          const: INVALID_REQUEST
+    FillNotFound:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code:
+          const: FILL_NOT_FOUND
+    ResearchUnavailable:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code:
+          const: RESEARCH_UNAVAILABLE
