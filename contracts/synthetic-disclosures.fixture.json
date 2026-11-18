@@ -1,0 +1,5 @@
+{
+  "disclosures": [
+    {"source":"synthetic-disclosures","evidence_id":"sample-disclosure-1","symbol":"SAMPLE","occurred_at":"2026-11-12T00:00:00Z","collected_at":"2026-11-12T00:01:00Z","title":"합성 샘플 공시","synthetic":true}
+  ]
+}

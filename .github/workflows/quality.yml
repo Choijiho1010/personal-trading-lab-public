@@ -13,6 +13,20 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      ledger-db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: synthetic_ledger
+          POSTGRES_USER: synthetic
+          POSTGRES_PASSWORD: synthetic-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U synthetic -d synthetic_ledger"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -56,6 +70,10 @@ jobs:
           npm run build
       - name: Check Spring Boot application
         working-directory: services/trading
+        env:
+          TRADING_LEDGER_URL: jdbc:postgresql://127.0.0.1:5432/synthetic_ledger
+          TRADING_LEDGER_USERNAME: synthetic
+          TRADING_LEDGER_PASSWORD: synthetic-ci
         run: ./gradlew --no-daemon test bootJar
       - name: Check integrated synthetic HTTP paths
         run: |
@@ -80,6 +98,38 @@ jobs:
           trap 'if [[ -n "$demo_pid" ]]; then kill "$demo_pid" 2>/dev/null || true; fi' EXIT
           run_case 0
           run_case 1500 --expect-timeout
+      - name: Verify ledger persistence and graph rebuild
+        env:
+          TRADING_LEDGER_ENABLED: 'true'
+          TRADING_LEDGER_URL: jdbc:postgresql://127.0.0.1:5432/synthetic_ledger
+          TRADING_LEDGER_USERNAME: synthetic
+          TRADING_LEDGER_PASSWORD: synthetic-ci
+        run: |
+          start_ledger() {
+            python3 scripts/run_first_demo.py &
+            demo_pid=$!
+            for attempt in {1..40}; do
+              if curl --fail --silent http://127.0.0.1:5173/api/v1/ledger/fills >/dev/null; then
+                return 0
+              fi
+              kill -0 "$demo_pid" || return 1
+              sleep 1
+            done
+            return 1
+          }
+          stop_ledger() {
+            kill "$demo_pid"
+            wait "$demo_pid"
+            demo_pid=
+          }
+          demo_pid=
+          trap 'if [[ -n "$demo_pid" ]]; then kill "$demo_pid" 2>/dev/null || true; fi' EXIT
+          start_ledger
+          python3 scripts/verify_synthetic_ledger.py --report "$RUNNER_TEMP/first-demo-review.md"
+          stop_ledger
+          start_ledger
+          python3 scripts/verify_synthetic_ledger.py --after-restart --report "$RUNNER_TEMP/first-demo-review.md"
+          stop_ledger
       - name: Audit tracked content and history
         run: uv run --frozen python scripts/quality.py audit
       - name: Show synthetic execution evidence

@@ -86,8 +86,7 @@ export function FillQuestionScreen({ client }) {
   const validationError = questionError(question);
 
   return (
-    <main className="page-shell">
-      <section aria-labelledby="page-title" className="panel">
+    <section aria-labelledby="page-title">
         <p className="eyebrow">Personal Trading Lab</p>
         <h1 id="page-title">체결을 확인하고 질문하기</h1>
         {loadState === 'loading' && <p role="status">체결 내역을 불러오는 중입니다.</p>}
@@ -134,7 +133,6 @@ export function FillQuestionScreen({ client }) {
           )}
           {submitError && <p role="alert">{submitError}</p>}
         </section>
-      </section>
-    </main>
+    </section>
   );
 }

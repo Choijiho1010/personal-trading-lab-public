@@ -1,0 +1,175 @@
+openapi: 3.1.0
+info:
+  title: Synthetic Ledger API
+  version: 1.0.0
+paths:
+  /api/v1/ledger/fills:
+    get:
+      responses:
+        '200':
+          description: Synthetic fills in filled_at, source, fill_id order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FillList'
+        '503':
+          $ref: '#/components/responses/LedgerUnavailable'
+    post:
+      description: Synthetic replay only. Identity is source and fill_id. Timestamps use microsecond precision or less. Collection cannot precede execution. A later collection time alone does not create a conflict.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Fill'
+      responses:
+        '201':
+          description: Inserted the first observed fill
+        '200':
+          description: Identical economic facts were already recorded
+        '400':
+          $ref: '#/components/responses/InvalidFill'
+        '409':
+          description: Conflicting facts recorded for inspection without changing the original
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [code]
+                properties:
+                  code:
+                    const: FILL_CONFLICT
+        '503':
+          $ref: '#/components/responses/LedgerUnavailable'
+  /api/v1/ledger/positions:
+    get:
+      responses:
+        '200':
+          description: Position quantities derived from stored fills, sorted by symbol
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [positions]
+                properties:
+                  positions:
+                    type: array
+                    items:
+                      type: object
+                      required: [symbol, quantity]
+                      properties:
+                        symbol:
+                          type: string
+                        quantity:
+                          type: integer
+        '503':
+          $ref: '#/components/responses/LedgerUnavailable'
+  /api/v1/ledger/conflicts:
+    get:
+      responses:
+        '200':
+          description: Observed conflicts for manual inspection
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [conflicts]
+                properties:
+                  conflicts:
+                    type: array
+                    items:
+                      type: object
+                      required: [source, fill_id, existing_quantity, received_quantity, existing_price_krw, received_price_krw, existing_symbol, received_symbol, existing_side, received_side, existing_filled_at, received_filled_at]
+                      properties:
+                        source:
+                          type: string
+                        fill_id:
+                          type: string
+                        existing_quantity:
+                          type: integer
+                        received_quantity:
+                          type: integer
+                        existing_price_krw:
+                          type: integer
+                        received_price_krw:
+                          type: integer
+                        existing_symbol:
+                          type: string
+                        received_symbol:
+                          type: string
+                        existing_side:
+                          enum: [BUY, SELL]
+                        received_side:
+                          enum: [BUY, SELL]
+                        existing_filled_at:
+                          type: string
+                          format: date-time
+                        received_filled_at:
+                          type: string
+                          format: date-time
+        '503':
+          $ref: '#/components/responses/LedgerUnavailable'
+components:
+  responses:
+    InvalidFill:
+      description: Invalid or non-synthetic fill
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code]
+            properties:
+              code:
+                const: INVALID_REQUEST
+    LedgerUnavailable:
+      description: Ledger unavailable
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code]
+            properties:
+              code:
+                const: LEDGER_UNAVAILABLE
+  schemas:
+    FillList:
+      type: object
+      required: [fills]
+      properties:
+        fills:
+          type: array
+          items:
+            $ref: '#/components/schemas/Fill'
+    Fill:
+      type: object
+      additionalProperties: false
+      required: [source, fill_id, symbol, side, quantity, price_krw, filled_at, collected_at, synthetic]
+      properties:
+        source:
+          const: synthetic-broker
+        fill_id:
+          type: string
+          pattern: '^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$'
+        symbol:
+          type: string
+          pattern: '^[A-Z0-9][A-Z0-9.-]{0,19}$'
+        side:
+          enum: [BUY, SELL]
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        price_krw:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        filled_at:
+          type: string
+          format: date-time
+          description: 체결 시각은 마이크로초 정밀도까지 지원한다.
+        collected_at:
+          type: string
+          format: date-time
+          description: 수집 시각은 체결 시각과 같거나 이후여야 하며 마이크로초 정밀도까지 지원한다.
+        synthetic:
+          const: true

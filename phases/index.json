@@ -64,13 +64,29 @@
     },
     {
       "id": "ledger",
-      "status": "pending",
-      "exit": "합성 체결로 주문·체결·잔고 API, 중복 적재 및 응답 유실 대사를 검증한다."
+      "status": "in_progress",
+      "exit": "합성 체결로 주문·체결·잔고 API, 중복 적재 및 응답 유실 대사를 검증한다.",
+      "evidence": [
+        "./gradlew --no-daemon test bootJar with PostgreSQL covered concurrent replay, conflict persistence, partial fills and wide position sums.",
+        "python3 scripts/verify_synthetic_ledger.py and --after-restart against the local stack: the duplicate returned 200, the conflicting quantity returned 409, and three fills, five shares and one conflict remained after Spring Boot restarted.",
+        "npm test --prefix apps/web passed 10 tests, including the shared ledger fixture, conflict differences and retry after a 503 response.",
+        "Aside browser snapshots and screenshots showed three fills, five shares and the 4-to-6 conflict, then empty-state and unavailable notices. After restoring PostgreSQL connections, the same tab recovered all three lists by selecting the retry button."
+      ],
+      "pending": [
+        "원격 CI를 확인한다.",
+        "주문 상태와 응답 유실 대사를 구현하고 검증한다."
+      ]
     },
     {
       "id": "graph",
-      "status": "pending",
-      "exit": "그래프를 다시 구축하고 기준일 및 근거 ID가 맞는지 고정 질의로 검증한다."
+      "status": "in_progress",
+      "exit": "그래프를 다시 구축하고 기준일 및 근거 ID가 맞는지 고정 질의로 검증한다.",
+      "evidence": [
+        "python3 scripts/verify_synthetic_ledger.py rebuilt identical graph JSON twice from the HTTP ledger export and synthetic disclosures, then checked that every relationship resolved and every trade linked to its input fill."
+      ],
+      "pending": [
+        "기준일을 적용하는 고정 질의와 해당 답변의 근거 ID를 검증한다."
+      ]
     },
     {
       "id": "live",
@@ -78,5 +94,5 @@
       "exit": "증권사 공식 연결 요건을 확인하고 테스트 환경에서 주문과 대사를 검증한 뒤 사용자가 앱에서 주문하고 체결을 확인한다."
     }
   ],
-  "next_action": "첫 데모 통합 PR의 사용자 코드 검토를 거친 뒤 원장 설계를 진행한다."
+  "next_action": "인수한 합성 원장 변경의 원격 CI와 PR 리뷰를 확인한다."
 }
