@@ -50,10 +50,13 @@
         "python3 scripts/run_first_demo.py and python3 scripts/verify_first_demo.py: the local /api/v1 path returned the synthetic fill, its 4-share answer and evidence; invalid input and missing fill returned 400 and 404.",
         "RESEARCH_SYNTHETIC_DELAY_MS=1500 python3 scripts/run_first_demo.py and python3 scripts/verify_first_demo.py --expect-timeout: 503 with the same ID as the Spring upstream_timeout log; the independent fill query remained available.",
         "An invalid synthetic delay produced the same request ID in the 503 header, Spring log and Python log; neither log contained the submitted question or the sensitive-field test marker.",
-        "Local browser: manual retry recovered the initial unavailable fill endpoint. The synthetic fill and Korean timestamp were visible; the 4-share answer highlighted and focused demo-fill-1 via its evidence button. A real HTTP timeout showed a retryable error with the fill and typed question still visible. Restarting in normal mode restored the answer and evidence interaction."
+        "Local browser: manual retry recovered the initial unavailable fill endpoint. The synthetic fill and Korean timestamp were visible; the 4-share answer highlighted and focused demo-fill-1 via its evidence button. A real HTTP timeout showed a retryable error with the fill and typed question still visible. Restarting in normal mode restored the answer and evidence interaction.",
+        "FIRST_DEMO_UI_REPORT=<path> npm test --prefix apps/web passed all 6 tests and recorded 2 jsdom observations. Both modes of python3 scripts/verify_first_demo.py --report <path> passed against the running services. A closed-port run exited nonzero and recorded failure. The GitHub Actions summary step rendered the local evidence file.",
+        "Aside browser screenshots and accessibility snapshots captured two synthetic runs: the cited fill row highlighted after clicking the evidence button, and the fill and typed question visible after the timeout notice. The Spring log confirmed HTTP 503 with reason upstream_timeout for the browser run."
       ],
       "limits": [
-        "합성 질의 대역으로 검증했다. 실제 Codex 답변 품질, 실계좌 및 운영 배포는 별도 인수 항목이다."
+        "합성 질의 대역으로 검증했다. 실제 Codex 답변 품질, 실계좌 및 운영 배포는 별도 인수 항목이다.",
+        "실행 근거 요약과 브라우저 캡처는 로컬에서 확인했다. 해당 변경을 포함한 원격 CI 실행은 확인 전이다."
       ]
     },
     {

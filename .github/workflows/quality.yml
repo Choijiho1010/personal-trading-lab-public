@@ -47,7 +47,7 @@ jobs:
         run: |
           npm ci
           npm run lint
-          npm test
+          FIRST_DEMO_UI_REPORT="$RUNNER_TEMP/first-demo-review.md" npm test
           npm run build
       - name: Check Spring Boot application
         working-directory: services/trading
@@ -66,7 +66,7 @@ jobs:
               kill -0 "$demo_pid"
               sleep 1
             done
-            python3 scripts/verify_first_demo.py "$@"
+            python3 scripts/verify_first_demo.py --report "$RUNNER_TEMP/first-demo-review.md" "$@"
             kill "$demo_pid"
             wait "$demo_pid"
             demo_pid=
@@ -77,3 +77,14 @@ jobs:
           run_case 1500 --expect-timeout
       - name: Audit tracked content and history
         run: uv run --frozen python scripts/quality.py audit
+      - name: Show synthetic execution evidence
+        if: always()
+        run: |
+          report="$RUNNER_TEMP/first-demo-review.md"
+          if [[ -s "$report" ]]; then
+            {
+              printf '%s\n' '## 첫 데모 실행 근거' ''
+              printf '%s\n' 'React 화면 상태는 합성 응답을 사용한 jsdom 테스트에서 관찰했다. HTTP 검사는 세 서비스를 실행한 결과다.' ''
+              cat "$report"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

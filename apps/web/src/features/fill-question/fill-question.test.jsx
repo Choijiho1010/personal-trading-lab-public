@@ -1,3 +1,5 @@
+import { appendFileSync } from 'node:fs';
+import { env } from 'node:process';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
@@ -17,6 +19,14 @@ const answer = {
   answer: '4주를 매수했습니다.',
   evidence_ids: ['demo-fill-1'],
 };
+
+function recordScreen(title, observations) {
+  const path = env.FIRST_DEMO_UI_REPORT;
+  if (path) {
+    const lines = observations.map(([label, value]) => `- ${label} — ${value}`);
+    appendFileSync(path, `\n### ${title}\n\n${lines.join('\n')}\n`, 'utf8');
+  }
+}
 
 describe('FillQuestionScreen', () => {
   it('loads and presents the synthetic fill in Korea time', async () => {
@@ -50,6 +60,12 @@ describe('FillQuestionScreen', () => {
     expect(screen.getByLabelText('질문')).toHaveValue('이 거래에서 몇 주 샀어?');
     expect(screen.getByText('SAMPLE')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '질문하기' })).toBeEnabled();
+    recordScreen('설명 서비스 오류 후 React 화면 상태', [
+      ['오류 문구', screen.getByRole('alert').textContent],
+      ['남아 있는 종목', screen.getByText('SAMPLE').textContent],
+      ['입력한 질문', screen.getByLabelText('질문').value],
+      ['질문하기 버튼 활성', !screen.getByRole('button', { name: '질문하기' }).disabled],
+    ]);
   });
 
   it('focuses and highlights the cited original fill row', async () => {
@@ -65,6 +81,11 @@ describe('FillQuestionScreen', () => {
 
     await waitFor(() => expect(screen.getByRole('row', { name: /demo-fill-1/ })).toHaveFocus());
     expect(screen.getByRole('row', { name: /demo-fill-1/ })).toHaveClass('is-cited');
+    recordScreen('근거 버튼을 누른 뒤 React 화면 상태', [
+      ['답변', screen.getByText('4주를 매수했습니다.').textContent],
+      ['초점을 받은 체결 ID', document.activeElement.cells[0].textContent],
+      ['강조 상태', document.activeElement.classList.contains('is-cited')],
+    ]);
   });
 
   it('uses Unicode code points when deciding whether a question exceeds 500 characters', async () => {
