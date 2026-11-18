@@ -3,6 +3,7 @@ package com.personallab.trading.config;
 import com.personallab.trading.domain.FillRepository;
 import com.personallab.trading.domain.LedgerRepository;
 import com.personallab.trading.domain.LedgerService;
+import com.personallab.trading.domain.ReplayResearchClient;
 import com.personallab.trading.domain.ResearchClient;
 import com.personallab.trading.domain.TradingService;
 import com.personallab.trading.infrastructure.fixture.FixtureFillRepository;
@@ -37,7 +38,7 @@ public class TradingConfiguration {
     }
 
     @Bean
-    ResearchClient researchClient(HttpClient httpClient, ObjectMapper objectMapper, TradingProperties properties) {
+    HttpResearchClient researchClient(HttpClient httpClient, ObjectMapper objectMapper, TradingProperties properties) {
         return new HttpResearchClient(httpClient, objectMapper, properties.getResearch().getBaseUrl(), properties.getResearch().getTimeoutMs());
     }
 
@@ -61,7 +62,7 @@ public class TradingConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "trading.ledger", name = "enabled", havingValue = "true")
-    LedgerService ledgerService(LedgerRepository ledgerRepository) {
-        return new LedgerService(ledgerRepository);
+    LedgerService ledgerService(LedgerRepository ledgerRepository, ReplayResearchClient research) {
+        return new LedgerService(ledgerRepository, research);
     }
 }

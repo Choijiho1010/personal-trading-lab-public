@@ -5,10 +5,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Optional, Tuple
 
 from .core import InvalidResearchQuestion, answer, parse_research_question
+from .replay import parse_replay_question
+from .replay_runtime import UnapprovedCodexQuestion, answer_replay
 from .synthetic_runtime import InvalidSyntheticDelay, wait_for_synthetic_delay
 
 LOGGER = logging.getLogger("research")
 PATH = "/internal/v1/research/questions"
+REPLAY_PATH = "/internal/v1/research/replay/questions"
+MAX_REPLAY_BODY_BYTES = 1_048_576
 MAX_BODY_BYTES = 16384
 
 
@@ -22,7 +26,7 @@ class ResearchRequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         request_id, request_id_valid = _request_id(self.headers.get("X-Request-ID"))
-        if self.path != PATH:
+        if self.path not in (PATH, REPLAY_PATH):
             self._failure(404, "INVALID_REQUEST", request_id, "route_not_found")
             return
         if not request_id_valid:
@@ -30,6 +34,9 @@ class ResearchRequestHandler(BaseHTTPRequestHandler):
             return
         if self.headers.get_content_type() != "application/json":
             self._failure(400, "INVALID_REQUEST", request_id, "invalid_request")
+            return
+        if self.path == REPLAY_PATH:
+            self._replay(request_id)
             return
         try:
             payload = _read_json(self)
@@ -40,6 +47,25 @@ class ResearchRequestHandler(BaseHTTPRequestHandler):
         try:
             wait_for_synthetic_delay()
             response = answer(question)
+        except InvalidSyntheticDelay:
+            self._failure(503, "RESEARCH_UNAVAILABLE", request_id, "synthetic_delay_invalid")
+            return
+        except Exception:
+            self._failure(503, "RESEARCH_UNAVAILABLE", request_id, "research_failure")
+            return
+        self._safe_respond(200, response, request_id)
+
+    def _replay(self, request_id: str) -> None:
+        try:
+            question = parse_replay_question(_read_json(self, MAX_REPLAY_BODY_BYTES))
+        except (ValueError, OverflowError, RecursionError):
+            self._failure(400, "INVALID_REQUEST", request_id, "invalid_request")
+            return
+        try:
+            response = answer_replay(question)
+        except UnapprovedCodexQuestion:
+            self._failure(400, "INVALID_REQUEST", request_id, "unapproved_codex_question")
+            return
         except InvalidSyntheticDelay:
             self._failure(503, "RESEARCH_UNAVAILABLE", request_id, "synthetic_delay_invalid")
             return
@@ -103,7 +129,7 @@ def _request_id(value: Optional[str]) -> Tuple[str, bool]:
     return value, True
 
 
-def _read_json(handler: BaseHTTPRequestHandler) -> Any:
+def _read_json(handler: BaseHTTPRequestHandler, max_bytes: int = MAX_BODY_BYTES) -> Any:
     content_length = handler.headers.get("Content-Length")
     if content_length is None:
         raise ValueError()
@@ -111,7 +137,7 @@ def _read_json(handler: BaseHTTPRequestHandler) -> Any:
         length = int(content_length)
     except ValueError as error:
         raise ValueError() from error
-    if not 0 <= length <= MAX_BODY_BYTES:
+    if not 0 <= length <= max_bytes:
         raise ValueError()
     raw_body = handler.rfile.read(length)
     if len(raw_body) != length:

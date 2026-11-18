@@ -129,6 +129,7 @@ jobs:
           stop_ledger
           start_ledger
           python3 scripts/verify_synthetic_ledger.py --after-restart --report "$RUNNER_TEMP/first-demo-review.md"
+          python3 scripts/verify_trade_replay.py --report "$RUNNER_TEMP/first-demo-review.md"
           stop_ledger
       - name: Audit tracked content and history
         run: uv run --frozen python scripts/quality.py audit
