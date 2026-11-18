@@ -7,6 +7,8 @@ import sys
 import tokenize
 from pathlib import Path, PurePosixPath
 
+from change_spec import OWNER_ROOTS, SPEC_PATH, covers, read_spec
+
 ROOT = Path(__file__).resolve().parents[1]
 PRIVATE = {".local", ".agents", ".codex", ".superpowers"}
 RUNTIME = {"data", "secrets", "runs", "backups", "logs"}
@@ -130,6 +132,46 @@ def audit_revision(revision, log_range):
     )
 
 
+def changed_paths(base, revision, *, diff_filter=""):
+    args = ["diff", "--no-renames", "--name-only", "-z"]
+    if diff_filter:
+        args.append(f"--diff-filter={diff_filter}")
+    return {name.decode() for name in git(*args, base, revision, "--").split(b"\0") if name}
+
+
+def check_spec_change(base, revision):
+    ancestor = git("merge-base", base, revision).decode().strip()
+    changed = changed_paths(ancestor, revision) & changed_paths(base, revision)
+    present = changed_paths(ancestor, revision, diff_filter="ACMRT")
+    scopes = [
+        read_spec(path, git("show", f"{revision}:{path}"))["scope"]
+        for path in sorted(changed & present)
+        if SPEC_PATH.fullmatch(path)
+    ]
+    uncovered = [
+        name
+        for name in sorted(changed)
+        if name.startswith(tuple(OWNER_ROOTS.values()))
+        and not any(covers(scope, name) for scope in scopes)
+    ]
+    if uncovered:
+        raise ValueError("Missing changed spec scope for: " + ", ".join(uncovered))
+
+
+def worker_start(path, owner):
+    if not SPEC_PATH.fullmatch(path):
+        raise ValueError("Use specs/<change-id>.json")
+    record = read_spec(path, (ROOT / path).read_bytes())
+    if owner not in record["scope"]:
+        raise ValueError(f"{path}: no paths assigned to {owner}")
+    print(f"Ready: {path} ({owner})")
+    print(
+        json.dumps(
+            {**record, "scope": {owner: record["scope"][owner]}}, ensure_ascii=False, indent=2
+        )
+    )
+
+
 def push():
     updates = [line.split() for line in sys.stdin if line.strip()]
     if not updates or any(len(row) != 4 for row in updates):
@@ -144,6 +186,8 @@ def push():
     if active:
         if git("status", "--porcelain", "--untracked-files=no").strip():
             raise RuntimeError("Tracked working tree must match the pushed commit")
+        if any(remote_ref.startswith("refs/heads/") for _, _, remote_ref, _ in active):
+            check_spec_change("origin/main", head)
         check()
 
 
@@ -189,10 +233,17 @@ def main():
             path = ROOT / name
             if path.is_file():
                 check_content(name, path.read_bytes())
+    elif mode == "spec-change" and len(sys.argv) == 4:
+        check_spec_change(sys.argv[2], sys.argv[3])
+    elif mode == "worker-start" and len(sys.argv) == 4:
+        worker_start(sys.argv[2], sys.argv[3])
     elif mode == "check":
         check()
     else:
-        raise ValueError("Expected check, staged, files, push, or audit")
+        raise ValueError(
+            "Expected check, staged, files, push, audit, spec-change BASE REVISION, "
+            "or worker-start SPEC OWNER"
+        )
 
 
 if __name__ == "__main__":

@@ -83,10 +83,12 @@ class QualityTests(unittest.TestCase):
                 quality, "git", side_effect=[sha.encode(), sha.encode(), sha.encode(), b""]
             ),
             patch.object(quality, "audit_revision") as audit,
+            patch.object(quality, "check_spec_change") as spec_change,
             patch.object(quality, "check") as check,
         ):
             quality.push()
             self.assertEqual(audit.call_count, 2)
+            spec_change.assert_called_once_with("origin/main", sha)
             check.assert_called_once()
 
     def test_forced_staged_private_path(self):
