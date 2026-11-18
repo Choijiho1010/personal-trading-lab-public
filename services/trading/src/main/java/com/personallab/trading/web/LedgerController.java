@@ -1,9 +1,13 @@
 package com.personallab.trading.web;
 
 import com.personallab.trading.domain.LedgerFill;
+import com.personallab.trading.domain.LedgerReplay;
 import com.personallab.trading.domain.LedgerService;
+import com.personallab.trading.domain.ReplayAnswer;
+import com.personallab.trading.domain.ReplayScope;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.UUID;
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.JsonNode;
 
@@ -32,6 +37,54 @@ public class LedgerController {
 
     public LedgerController(ObjectProvider<LedgerService> provider) {
         this.provider = provider;
+    }
+
+    @GetMapping("/replay")
+    LedgerReplay replay(
+            @RequestParam(name = "symbol", required = false) String symbol,
+            @RequestParam(name = "from_date", required = false) String fromDate,
+            @RequestParam(name = "as_of", required = false) String asOf,
+            HttpServletResponse response) {
+        ReplayScope scope = replayScope(symbol, fromDate, asOf);
+        return ledger(response).replay(scope);
+    }
+
+    @PostMapping("/replay/questions")
+    ReplayAnswer askReplay(@RequestBody JsonNode body, HttpServletResponse response) {
+        if (!body.isObject() || body.size() != 4) {
+            throw new InvalidRequest();
+        }
+        ReplayScope scope = replayScope(text(body, "symbol"), text(body, "from_date"), text(body, "as_of"));
+        String question = text(body, "question");
+        if (question.codePointCount(0, question.length()) > 500
+                || question.codePoints().allMatch(c -> Character.isWhitespace(c) || Character.isSpaceChar(c))) {
+            throw new InvalidRequest();
+        }
+        LedgerService service = ledger(response);
+        return service.askReplay(response.getHeader("X-Request-ID"), scope, question);
+    }
+
+    private ReplayScope replayScope(String symbol, String fromDate, String asOf) {
+        if (symbol == null || !symbol.matches("[A-Z0-9][A-Z0-9.-]{0,19}")) {
+            throw new InvalidRequest();
+        }
+        LocalDate from = replayDate(fromDate);
+        LocalDate through = replayDate(asOf);
+        if (through.isBefore(from)) {
+            throw new InvalidRequest();
+        }
+        return new ReplayScope(symbol, from, through);
+    }
+
+    private LocalDate replayDate(String value) {
+        if (value == null || !value.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}") || value.startsWith("0000")) {
+            throw new InvalidRequest();
+        }
+        try {
+            return LocalDate.parse(value);
+        } catch (DateTimeParseException invalid) {
+            throw new InvalidRequest();
+        }
     }
 
     @GetMapping("/fills")

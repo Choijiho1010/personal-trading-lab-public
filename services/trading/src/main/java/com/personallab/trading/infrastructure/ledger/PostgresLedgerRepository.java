@@ -2,11 +2,14 @@ package com.personallab.trading.infrastructure.ledger;
 
 import com.personallab.trading.domain.FillConflict;
 import com.personallab.trading.domain.LedgerFill;
+import com.personallab.trading.domain.LedgerReplay;
 import com.personallab.trading.domain.LedgerRepository;
 import com.personallab.trading.domain.Position;
+import com.personallab.trading.domain.ReplayScope;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.ConnectionCallback;
@@ -80,6 +83,34 @@ public class PostgresLedgerRepository implements LedgerRepository {
                 select symbol, sum(case when side = 'BUY' then quantity else -quantity end) as quantity
                 from ledger_fills group by symbol order by symbol
                 """, (rs, row) -> new Position(rs.getString("symbol"), rs.getLong("quantity")));
+    }
+
+    @Override
+    public LedgerReplay replay(ReplayScope scope) {
+        Timestamp cutoff = Timestamp.from(scope.cutoff());
+        return jdbc.query("""
+                with known_fills as (
+                    select source, fill_id, symbol, side, quantity, price_krw, filled_at, collected_at, synthetic
+                    from ledger_fills
+                    where symbol = ? and filled_at < ? and collected_at < ? and synthetic
+                ), position as (
+                    select coalesce(sum(case when side = 'BUY' then quantity else -quantity end), 0) as net_quantity
+                    from known_fills
+                )
+                select known_fills.*, position.net_quantity
+                from position left join known_fills on known_fills.filled_at >= ?
+                order by filled_at, source, fill_id
+                """, rs -> {
+            List<LedgerFill> fills = new ArrayList<>();
+            long position = 0;
+            while (rs.next()) {
+                position = rs.getLong("net_quantity");
+                if (rs.getString("fill_id") != null) {
+                    fills.add(fill(rs, fills.size()));
+                }
+            }
+            return new LedgerReplay(scope.symbol(), scope.fromDate(), scope.asOf(), List.copyOf(fills), position);
+        }, scope.symbol(), cutoff, cutoff, Timestamp.from(scope.start()));
     }
 
     @Override

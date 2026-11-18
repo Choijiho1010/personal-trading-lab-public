@@ -1,0 +1,23 @@
+{
+  "scope": {"symbol": "SAMPLE", "from_date": "2026-11-12", "as_of": "2026-11-13"},
+  "question": "기준일까지 몇 주를 사고팔았고, 당시 어떤 공시가 있었나요?",
+  "prior_fill": {"source":"synthetic-broker","fill_id":"opening-1","symbol":"SAMPLE","side":"BUY","quantity":3,"price_krw":9900,"filled_at":"2026-11-10T00:00:00Z","collected_at":"2026-11-10T00:00:01Z","synthetic":true},
+  "additional_fills": [
+    {"source":"synthetic-broker","fill_id":"late-fill-1","symbol":"SAMPLE","side":"BUY","quantity":10,"price_krw":9900,"filled_at":"2026-11-13T14:59:58Z","collected_at":"2026-11-13T15:00:00Z","synthetic":true},
+    {"source":"synthetic-broker","fill_id":"other-fill-1","symbol":"OTHER","side":"BUY","quantity":8,"price_krw":9900,"filled_at":"2026-11-13T12:00:00Z","collected_at":"2026-11-13T12:00:01Z","synthetic":true}
+  ],
+  "additional_disclosures": [
+    {"source":"synthetic-disclosures","evidence_id":"late-disclosure-1","symbol":"SAMPLE","occurred_at":"2026-11-13T13:00:00Z","collected_at":"2026-11-13T15:00:00Z","title":"합성 지연 공시","synthetic":true},
+    {"source":"synthetic-disclosures","evidence_id":"future-disclosure-1","symbol":"SAMPLE","occurred_at":"2026-11-13T15:00:00Z","collected_at":"2026-11-13T15:00:00Z","title":"합성 미래 공시","synthetic":true},
+    {"source":"synthetic-disclosures","evidence_id":"other-disclosure-1","symbol":"OTHER","occurred_at":"2026-11-13T12:00:00Z","collected_at":"2026-11-13T12:00:00Z","title":"합성 타종목 공시","synthetic":true}
+  ],
+  "expected": {
+    "fill_ids": ["partial-1", "partial-2", "sell-1"],
+    "bought_quantity": 6,
+    "sold_quantity": 1,
+    "position_quantity": 8,
+    "evidence_ids": ["evidence:fill:synthetic-broker:partial-1", "evidence:fill:synthetic-broker:partial-2", "evidence:fill:synthetic-broker:sell-1", "evidence:disclosure:synthetic-disclosures:sample-disclosure-1"],
+    "empty_scope": {"symbol": "UNKNOWN", "from_date": "2026-11-12", "as_of": "2026-11-13"},
+    "invalid_evidence_id": "evidence:disclosure:synthetic-disclosures:late-disclosure-1"
+  }
+}

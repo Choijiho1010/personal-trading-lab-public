@@ -89,10 +89,30 @@
       ]
     },
     {
+      "id": "synthetic-trade-replay",
+      "status": "in_progress",
+      "exit": "별도 체결·질문 화면에서 합성 거래를 복기하고, 기준일 근거와 실행 경계, 브라우저 인수, PR 리뷰 및 병합 후 CI를 확인한다.",
+      "evidence": [
+        "npm run lint --prefix apps/web, npm test --prefix apps/web and npm run build --prefix apps/web: 13 tests passed and production build succeeded.",
+        "uv run --frozen pytest -q services/research/tests/test_replay.py: 31 tests passed, including scoped input, structured evidence validation and simulated process failure.",
+        "Explicit Codex runtime smoke with the shared synthetic replay fixture: 6 shares bought, 1 sold, 8 held at cutoff, with the expected three fill citations and one disclosure citation.",
+        "uv run --frozen python scripts/quality.py check passed Ruff, Import Linter and 84 tests with one skipped.",
+        "Spring Gradle test results against PostgreSQL recorded 24 tests and zero failures or skips.",
+        "python3 scripts/verify_trade_replay.py verified three scoped fills, the opening position contribution, expected citations, an empty symbol and HTTP 400 on reversed dates.",
+        "Aside browser snapshots captured separate ledger and question screens, an actual Codex answer, disclosure details, citation navigation, insufficient evidence, and a real upstream timeout followed by the same ledger at 8 shares. The synthetic browser flow was accepted."
+      ],
+      "pending": [
+        "GitHub PR 리뷰와 공개 적합성, 병합 후 CI를 확인한다."
+      ],
+      "limits": [
+        "합성 자료 검증이다. 실계좌와 외부 에이전트 도구는 별도 단계에 둔다."
+      ]
+    },
+    {
       "id": "live",
       "status": "unverified",
       "exit": "증권사 공식 연결 요건을 확인하고 테스트 환경에서 주문과 대사를 검증한 뒤 사용자가 앱에서 주문하고 체결을 확인한다."
     }
   ],
-  "next_action": "인수한 합성 원장 변경의 원격 CI와 PR 리뷰를 확인한다."
+  "next_action": "합성 거래 복기의 통합 브라우저 인수와 PR 검증을 진행한다."
 }

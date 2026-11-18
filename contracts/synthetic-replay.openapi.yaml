@@ -1,0 +1,156 @@
+openapi: 3.1.0
+info:
+  title: Synthetic Trade Replay API
+  version: 1.0.0
+paths:
+  /api/v1/ledger/replay:
+    get:
+      parameters:
+        - name: symbol
+          in: query
+          required: true
+          schema: {$ref: '#/components/schemas/Symbol'}
+        - name: from_date
+          in: query
+          required: true
+          schema: {type: string, format: date}
+        - name: as_of
+          in: query
+          required: true
+          schema: {type: string, format: date}
+      responses:
+        '200':
+          description: Matching synthetic fills and the source ledger's position as of the selected date.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/LedgerSlice'}
+        '400': {$ref: '#/components/responses/Invalid'}
+        '503':
+          description: Ledger unavailable
+  /api/v1/ledger/replay/questions:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Question'}
+      responses:
+        '200': {$ref: '#/components/responses/Answer'}
+        '400': {$ref: '#/components/responses/Invalid'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+  /internal/v1/research/replay/questions:
+    post:
+      parameters:
+        - name: X-Request-ID
+          in: header
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ResearchQuestion'}
+      responses:
+        '200': {$ref: '#/components/responses/Answer'}
+        '400': {$ref: '#/components/responses/Invalid'}
+        '503': {$ref: '#/components/responses/Unavailable'}
+components:
+  responses:
+    Invalid:
+      description: Invalid input
+    Unavailable:
+      description: Ledger or research service unavailable
+      headers:
+        X-Request-ID:
+          schema: {type: string, format: uuid}
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [code]
+            properties:
+              code: {enum: [LEDGER_UNAVAILABLE, RESEARCH_UNAVAILABLE]}
+    Answer:
+      description: Structured, cited research response or explicit insufficient evidence.
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/CitedAnswer'
+              - $ref: '#/components/schemas/InsufficientEvidence'
+  schemas:
+    Symbol:
+      type: string
+      pattern: '^[A-Z0-9][A-Z0-9.-]{0,19}$'
+    Scope:
+      description: Asia/Seoul dates. Occurrence starts at from_date midnight. Occurrence and collection must both precede the midnight after as_of.
+      type: object
+      required: [symbol, from_date, as_of]
+      properties:
+        symbol: {$ref: '#/components/schemas/Symbol'}
+        from_date: {type: string, format: date}
+        as_of: {type: string, format: date}
+    LedgerSlice:
+      allOf:
+        - $ref: '#/components/schemas/Scope'
+        - type: object
+          required: [fills, position_quantity]
+          properties:
+            fills:
+              type: array
+              items: {$ref: './synthetic-ledger.openapi.yaml#/components/schemas/Fill'}
+            position_quantity:
+              description: Net position through as_of, including known fills earlier than from_date.
+              type: integer
+    Question:
+      allOf:
+        - $ref: '#/components/schemas/Scope'
+        - $ref: '#/components/schemas/QuestionText'
+      unevaluatedProperties: false
+    ResearchQuestion:
+      allOf:
+        - $ref: '#/components/schemas/LedgerSlice'
+        - $ref: '#/components/schemas/QuestionText'
+      unevaluatedProperties: false
+    QuestionText:
+      type: object
+      required: [question]
+      properties:
+        question: {type: string, minLength: 1, maxLength: 500}
+    CitedAnswer:
+      type: object
+      additionalProperties: false
+      required: [status, answer, evidence]
+      properties:
+        status: {const: answered}
+        answer: {type: string, minLength: 1}
+        evidence:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: {$ref: '#/components/schemas/Evidence'}
+    InsufficientEvidence:
+      type: object
+      additionalProperties: false
+      required: [status, answer, evidence]
+      properties:
+        status: {const: insufficient_evidence}
+        answer: {const: ''}
+        evidence: {type: array, maxItems: 0}
+    Evidence:
+      type: object
+      additionalProperties: false
+      required: [id, kind, source, reference_id, occurred_at, collected_at]
+      properties:
+        id: {type: string}
+        kind: {enum: [fill, disclosure]}
+        source: {type: string}
+        reference_id: {type: string}
+        occurred_at: {type: string, format: date-time}
+        collected_at: {type: string, format: date-time}
+        title: {type: string}
+      if:
+        properties:
+          kind: {const: disclosure}
+      then:
+        required: [title]

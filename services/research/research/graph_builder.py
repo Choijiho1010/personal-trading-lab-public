@@ -40,8 +40,8 @@ class DuplicateJsonKey(ValueError):
 
 
 def build_graph(fills_document: Any, disclosures_document: Any) -> dict[str, Any]:
-    fills = _parse_fills(fills_document)
-    disclosures = _parse_disclosures(disclosures_document)
+    fills = parse_fills(fills_document)
+    disclosures = parse_disclosures(disclosures_document)
     nodes = []
     relationships = []
     symbols = sorted({fill["symbol"] for fill in fills} | {item["symbol"] for item in disclosures})
@@ -105,7 +105,7 @@ def build_graph(fills_document: Any, disclosures_document: Any) -> dict[str, Any
 def read_graph_inputs(
     fills_path: Path, disclosures_path: Path
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    return _read_document(fills_path, "fills"), _read_document(disclosures_path, "disclosures")
+    return read_document(fills_path, "fills"), read_document(disclosures_path, "disclosures")
 
 
 def write_graph(graph: dict[str, Any], output_path: Path) -> None:
@@ -139,7 +139,7 @@ def main() -> None:
     print(arguments.output)
 
 
-def _read_document(path: Path, name: str) -> dict[str, Any]:
+def read_document(path: Path, name: str) -> dict[str, Any]:
     try:
         with path.open(encoding="utf-8") as stream:
             value = json.load(stream, object_pairs_hook=_no_duplicate_json_keys)
@@ -150,7 +150,7 @@ def _read_document(path: Path, name: str) -> dict[str, Any]:
     return value
 
 
-def _parse_fills(document: Any) -> list[dict[str, Any]]:
+def parse_fills(document: Any) -> list[dict[str, Any]]:
     if (
         not isinstance(document, dict)
         or "fills" not in document
@@ -180,14 +180,14 @@ def _parse_fill(value: Any) -> dict[str, Any]:
     _require(value["side"] in ("BUY", "SELL"), "fill.side")
     _positive_integer(value["quantity"], "fill.quantity")
     _positive_integer(value["price_krw"], "fill.price_krw")
-    filled_at = _timestamp(value["filled_at"], "fill.filled_at")
-    collected_at = _timestamp(value["collected_at"], "fill.collected_at")
+    filled_at = parse_timestamp(value["filled_at"], "fill.filled_at")
+    collected_at = parse_timestamp(value["collected_at"], "fill.collected_at")
     _require(collected_at >= filled_at, "fill.collected_at")
     _require(value["synthetic"] is True, "fill.synthetic")
     return value
 
 
-def _parse_disclosures(document: Any) -> list[dict[str, Any]]:
+def parse_disclosures(document: Any) -> list[dict[str, Any]]:
     if not isinstance(document, dict) or set(document) != {"disclosures"}:
         raise InvalidGraphInput("disclosures: expected only disclosures")
     disclosures = document["disclosures"]
@@ -206,8 +206,8 @@ def _parse_disclosure(value: Any) -> dict[str, Any]:
     _identifier(value["evidence_id"], "disclosure.evidence_id")
     _symbol(value["symbol"], "disclosure.symbol")
     _text(value["title"], "disclosure.title")
-    occurred_at = _timestamp(value["occurred_at"], "disclosure.occurred_at")
-    collected_at = _timestamp(value["collected_at"], "disclosure.collected_at")
+    occurred_at = parse_timestamp(value["occurred_at"], "disclosure.occurred_at")
+    collected_at = parse_timestamp(value["collected_at"], "disclosure.collected_at")
     _require(collected_at >= occurred_at, "disclosure.collected_at")
     _require(value["synthetic"] is True, "disclosure.synthetic")
     return value
@@ -253,7 +253,7 @@ def _text(value: Any, field: str) -> None:
     _require(isinstance(value, str) and value.strip(), field)
 
 
-def _timestamp(value: Any, field: str) -> datetime:
+def parse_timestamp(value: Any, field: str) -> datetime:
     _require(isinstance(value, str), field)
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))

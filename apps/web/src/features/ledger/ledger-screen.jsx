@@ -1,30 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 
-function formatKoreanTime(value) {
-  return new Intl.DateTimeFormat('ko-KR', {
-    dateStyle: 'long',
-    timeStyle: 'medium',
-    timeZone: 'Asia/Seoul',
-  }).format(new Date(value));
-}
+import { FillsTable } from '../../shared/fills-table.jsx';
+import { formatPrice, formatQuantity, formatSide } from '../../shared/trade-format.js';
 
 function unavailableMessage(code) {
   if (code === 'LEDGER_UNAVAILABLE') {
     return '원장을 지금 사용할 수 없습니다. 잠시 후 다시 불러와 주세요.';
   }
   return '원장을 불러오지 못했습니다. 다시 불러와 주세요.';
-}
-
-function formatSide(value) {
-  return value === 'BUY' ? '매수' : '매도';
-}
-
-function formatPrice(value) {
-  return `${value.toLocaleString('ko-KR')}원`;
-}
-
-function formatQuantity(value) {
-  return `${value.toLocaleString('ko-KR')}주`;
 }
 
 const conflictFields = [
@@ -77,22 +60,9 @@ export function LedgerScreen({ client }) {
         <div className="ledger-sections">
           <section aria-labelledby="ledger-fill-heading">
             <h2 id="ledger-fill-heading">체결 내역</h2>
-            {ledger.fills.length === 0 ? <p>기록된 체결이 없습니다.</p> : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr><th>출처</th><th>체결 ID</th><th>종목</th><th>방향</th><th>수량</th><th>가격</th><th>체결 시각</th></tr>
-                  </thead>
-                  <tbody>
-                    {ledger.fills.map((fill) => (
-                      <tr key={`${fill.source}-${fill.fill_id}`}>
-                        <td>{fill.source}</td><td>{fill.fill_id}</td><td>{fill.symbol}</td><td>{formatSide(fill.side)}</td><td>{formatQuantity(fill.quantity)}</td><td>{formatPrice(fill.price_krw)}</td><td>{formatKoreanTime(fill.filled_at)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            {ledger.fills.length === 0
+              ? <p>기록된 체결이 없습니다.</p>
+              : <FillsTable fills={ledger.fills} />}
           </section>
           <section aria-labelledby="ledger-position-heading">
             <h2 id="ledger-position-heading">보유 수량</h2>
