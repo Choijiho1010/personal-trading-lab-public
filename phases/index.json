@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-14",
+  "updated": "2026-11-18",
   "phases": [
     {
       "id": "bootstrap",
@@ -24,10 +24,39 @@
         "GitHub Actions Quality succeeded on 4604a706046de9af644063a81c85af5e9f0202c5: https://github.com/Choijiho1010/personal-trading-lab-public/actions/runs/43548188863",
         "main requires PRs, strict quality from GitHub Actions and resolved conversations, including administrators; force pushes and deletion are disabled. PR1 was BLOCKED while quality ran and CLEAN after success",
         "Codex automatic PR-open review on 42a0ec4072cec897be7ce9e32485f5aebaa92f13 and new-commit re-review on 4604a706046de9af644063a81c85af5e9f0202c5 completed without findings: https://github.com/Choijiho1010/personal-trading-lab-public/pull/1#issuecomment-6870413144",
-        "Implementer public-suitability checks covered the exact 24-file source tree, commit metadata, public wording, commit messages and evidence scope before each push"
+        "Implementer public-suitability checks covered the exact 24-file source tree, commit metadata, public wording, commit messages and evidence scope before each push",
+        "After recording the automated-checks-first convention in AGENTS.md, python3 scripts/validate.py passed and uv run --frozen python scripts/quality.py check passed Ruff and 19 tests",
+        "uv run --frozen python scripts/quality.py check passed Ruff and 21 tests with Python and YAML comment detection. uv run --frozen pre-commit run file-check --all-files passed. In a temporary repository, pre-commit rejected a staged Python comment at its line and passed after removing it while retaining a hash inside a string.",
+        "After recording worker scope and the first demo in FIRST_DEMO.md, UV_NO_CACHE=1 uv run --frozen --offline python scripts/quality.py check passed Ruff, scaffold validation and 21 tests.",
+        "After detailing the first demo API and import boundaries, UV_NO_CACHE=1 uv run --frozen --offline python scripts/quality.py check passed Ruff, scaffold validation and 21 tests.",
+        "UV_NO_CACHE=1 uv run --frozen --offline python scripts/quality.py check passed Ruff and 24 tests. The error-boundary hook passed against the v1 contract and failed in a temporary repository when a staged 503 error code was changed.",
+        "PR #2 first-demo commit c375289 passed pre-commit and pre-push, including the Gitleaks audit and 30 Python tests.",
+        "PR #2 commit c375289 passed GitHub Actions Quality, including the React build and tests, Spring Boot build and tests, normal and timeout HTTP integration, and public history audit: https://github.com/Choijiho1010/personal-trading-lab-public/actions/runs/44192947194",
+        "Codex automatic PR review completed without findings on c375289: https://github.com/Choijiho1010/personal-trading-lab-public/pull/2#issuecomment-6963178451",
+        "After adding public-repository suitability to the PR review rules, python3 scripts/validate.py and the targeted quality.py files check passed for the review instructions."
       ],
       "pending": [
         "AI 승인 자체를 필수 병합 게이트로 요구하는 기능은 미확인이다."
+      ]
+    },
+    {
+      "id": "first-demo",
+      "status": "done",
+      "exit": "로컬 브라우저에서 합성 체결 1건을 조회하고, 질의 성공·근거 이동과 시간 초과 뒤 체결 조회 유지를 확인한다.",
+      "evidence": [
+        "UV_NO_CACHE=1 uv run --frozen --offline python scripts/quality.py check: Ruff and Import Linter passed, pytest 30 passed.",
+        "npm run lint --prefix apps/web, npm test --prefix apps/web and npm run build --prefix apps/web: lint and production build passed, 6 tests passed.",
+        "cd services/trading && ./gradlew --no-daemon test bootJar: 7 API tests and 1 ArchUnit test passed; executable JAR built.",
+        "python3 scripts/run_first_demo.py and python3 scripts/verify_first_demo.py: the local /api/v1 path returned the synthetic fill, its 4-share answer and evidence; invalid input and missing fill returned 400 and 404.",
+        "RESEARCH_SYNTHETIC_DELAY_MS=1500 python3 scripts/run_first_demo.py and python3 scripts/verify_first_demo.py --expect-timeout: 503 with the same ID as the Spring upstream_timeout log; the independent fill query remained available.",
+        "An invalid synthetic delay produced the same request ID in the 503 header, Spring log and Python log; neither log contained the submitted question or the sensitive-field test marker.",
+        "Local browser: manual retry recovered the initial unavailable fill endpoint. The synthetic fill and Korean timestamp were visible; the 4-share answer highlighted and focused demo-fill-1 via its evidence button. A real HTTP timeout showed a retryable error with the fill and typed question still visible. Restarting in normal mode restored the answer and evidence interaction.",
+        "FIRST_DEMO_UI_REPORT=<path> npm test --prefix apps/web passed all 6 tests and recorded 2 jsdom observations. Both modes of python3 scripts/verify_first_demo.py --report <path> passed against the running services. A closed-port run exited nonzero and recorded failure. The GitHub Actions summary step rendered the local evidence file.",
+        "Aside browser screenshots and accessibility snapshots captured two synthetic runs: the cited fill row highlighted after clicking the evidence button, and the fill and typed question visible after the timeout notice. The Spring log confirmed HTTP 503 with reason upstream_timeout for the browser run."
+      ],
+      "limits": [
+        "합성 질의 대역으로 검증했다. 실제 Codex 답변 품질, 실계좌 및 운영 배포는 별도 인수 항목이다.",
+        "실행 근거 요약과 브라우저 캡처는 로컬에서 확인했다. 해당 변경을 포함한 원격 CI 실행은 확인 전이다."
       ]
     },
     {
@@ -46,5 +75,5 @@
       "exit": "증권사 공식 연결 요건을 확인하고 테스트 환경에서 주문과 대사를 검증한 뒤 사용자가 앱에서 주문하고 체결을 확인한다."
     }
   ],
-  "next_action": "합성 원장 설계를 진행하고, 모델 품질·권한 경계와 자동 AI 병합 게이트는 별도 근거로 검증한다."
+  "next_action": "첫 데모 통합 PR의 사용자 코드 검토를 거친 뒤 원장 설계를 진행한다."
 }

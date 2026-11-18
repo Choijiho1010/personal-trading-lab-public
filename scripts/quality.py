@@ -1,16 +1,17 @@
-"""Deterministic checks shared by Git hooks and CI."""
-
+import io
 import json
 import re
 import shutil
 import subprocess
 import sys
+import tokenize
 from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 PRIVATE = {".local", ".agents", ".codex", ".superpowers"}
 RUNTIME = {"data", "secrets", "runs", "backups", "logs"}
 TEXT_SUFFIXES = {".py", ".md", ".json", ".yaml", ".yml", ".toml", ".example"}
+COMMENT_CHECK_SUFFIXES = {".py", ".yaml", ".yml"}
 
 
 def git(*args, cwd=ROOT):
@@ -28,6 +29,27 @@ def forbidden_path(name):
     )
 
 
+def check_comments(name, content):
+    suffix = PurePosixPath(name).suffix
+    if suffix == ".py":
+        for token in tokenize.tokenize(io.BytesIO(content).readline):
+            line, column = token.start
+            is_shebang = (line, column) == (1, 0) and token.string.startswith("#!")
+            if token.type == tokenize.COMMENT and not is_shebang:
+                raise ValueError(f"{name}:{line}: remove source comment")
+    elif suffix in {".yaml", ".yml"}:
+        import yaml
+
+        source = content.decode("utf-8")
+        previous_end = 0
+        for token in yaml.scan(source):
+            comment = source.find("#", previous_end, token.start_mark.index)
+            if comment != -1:
+                line = source.count("\n", 0, comment) + 1
+                raise ValueError(f"{name}:{line}: remove source comment")
+            previous_end = max(previous_end, token.end_mark.index)
+
+
 def check_content(name, content):
     if forbidden_path(name):
         raise ValueError(f"Forbidden public path: {name}")
@@ -43,6 +65,7 @@ def check_content(name, content):
         raise ValueError(f"Missing final newline: {name}")
     if any(line.rstrip() != line for line in text.splitlines()):
         raise ValueError(f"Trailing whitespace: {name}")
+    check_comments(name, content)
     if name.endswith(".json"):
         json.loads(text)
     if name.endswith((".yml", ".yaml")):
@@ -84,7 +107,6 @@ def staged():
 
 
 def history_range(local_sha, remote_sha):
-    # A new remote branch needs its entire reachable history scanned.
     if set(remote_sha) == {"0"}:
         return local_sha
     return f"{remote_sha}..{local_sha}"
@@ -95,7 +117,6 @@ def audit_revision(revision, log_range):
     for raw in filter(None, names):
         if forbidden_path(raw.decode()):
             raise ValueError(f"Forbidden committed path: {raw.decode()}")
-    # Include intermediate commits, including files deleted before the branch tip.
     names = git("log", "--format=", "--name-only", "-z", log_range).split(b"\0")
     for raw in filter(None, names):
         name = raw.decode().strip("\n")
@@ -127,10 +148,25 @@ def push():
 
 
 def check():
+    names = git("ls-files", "--cached", "--others", "--exclude-standard", "-z").split(b"\0")
+    for raw in filter(None, names):
+        name = raw.decode()
+        path = ROOT / name
+        if path.suffix in COMMENT_CHECK_SUFFIXES and path.is_file():
+            check_comments(name, path.read_bytes())
     for command in (
         ["uv", "run", "--frozen", "ruff", "check", "."],
         ["uv", "run", "--frozen", "ruff", "format", "--check", "."],
         [sys.executable, "scripts/validate.py"],
+        [
+            "uv",
+            "run",
+            "--frozen",
+            "lint-imports",
+            "--no-cache",
+            "--config",
+            "services/research/pyproject.toml",
+        ],
         ["uv", "run", "--frozen", "pytest"],
     ):
         subprocess.run(command, cwd=ROOT, check=True)
@@ -162,6 +198,12 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except (ValueError, OSError, subprocess.CalledProcessError, RuntimeError) as error:
+    except (
+        ValueError,
+        OSError,
+        subprocess.CalledProcessError,
+        RuntimeError,
+        tokenize.TokenError,
+    ) as error:
         print(f"Quality check failed: {error}", file=sys.stderr)
         sys.exit(1)

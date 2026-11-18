@@ -39,6 +39,25 @@ class QualityTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             quality.check_content("harness/a.json", b"not json\n")
 
+    def test_code_comments_are_rejected_at_their_line(self):
+        cases = [
+            ("scripts/example.py", b'value = "# literal"\n# remove this\n'),
+            ("scripts/example.py", b'value = "# literal"\nvalue = 1  # remove this\n'),
+            (".github/workflows/demo.yml", b'value: "# literal"\nvalue: 1 # remove this\n'),
+        ]
+        for name, content in cases:
+            with self.subTest(name=name, content=content):
+                with self.assertRaisesRegex(ValueError, r":2:.*comment"):
+                    quality.check_content(name, content)
+
+    def test_comment_markers_in_data_are_allowed(self):
+        quality.check_content("scripts/example.py", b'value = "# literal"\n')
+        quality.check_content("scripts/example.py", b"#!/usr/bin/env python3\nvalue = 1\n")
+        quality.check_content(
+            ".github/workflows/demo.yml",
+            b'run: |\n  echo "# shell input"\nvalue: literal#suffix\nquoted: "# literal"\n',
+        )
+
     def test_missing_scanner_blocks(self):
         with (
             patch.object(quality.shutil, "which", return_value=None),

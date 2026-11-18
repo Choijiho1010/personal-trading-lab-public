@@ -1,0 +1,12 @@
+[tool.importlinter]
+root_packages = ["services.research.research"]
+
+[[tool.importlinter.contracts]]
+name = "research core has no adapter dependencies"
+type = "forbidden"
+source_modules = ["services.research.research.core"]
+forbidden_modules = [
+  "services.research.research.http_adapter",
+  "services.research.research.synthetic_runtime",
+  "services.research.research.server",
+]
