@@ -2,7 +2,7 @@
 
 국내주식의 주문·체결을 기록하고, 거래 이력과 출처·시점이 있는 근거를 질의하는 앱을 목표로 한다. 주문과 체결의 기준은 증권사와 거래 원장이다. 온톨로지·GraphRAG와 Codex는 거래 이력과 관련 근거를 연결하는 조회 경로로 설계한다.
 
-첫 데모는 React 화면, Spring Boot 거래 서비스, Python 질의 서비스를 연결해 합성 체결 1건을 조회하고 답변의 근거를 확인한다. 원장·그래프 DB와 증권사 연결은 후속 단계에 둔다. 미래에셋 실주문 API 확인 현황은 [결정 기록](docs/ADR.md), 작업 순서와 인수 조건은 [단계 파일](phases/index.json)에 있다.
+첫 데모는 React 화면, Spring Boot 거래 서비스, Python 질의 서비스를 연결해 합성 체결 1건을 조회하고 답변의 근거를 확인한다. PostgreSQL 합성 원장은 체결을 저장하고 보유 수량을 계산한다. 거래와 공시의 근거 그래프는 JSON으로 재구축할 수 있다. 미래에셋 실주문 API 확인 현황은 [결정 기록](docs/ADR.md), 인수 조건과 확인 상태는 [단계 파일](phases/index.json)에 있다.
 
 ## 로컬에서 첫 데모 실행
 
@@ -17,6 +17,16 @@ python3 scripts/run_first_demo.py
 [http://127.0.0.1:5173/](http://127.0.0.1:5173/)에서 합성 체결을 확인한다. “이 거래에서 몇 주 샀어?”를 제출하고 근거 보기로 원래 체결 행을 확인한다. 다른 터미널에서 `python3 scripts/verify_first_demo.py`로 HTTP 경로를 재현할 수 있다.
 
 시간 초과를 재현하려면 실행기를 종료한 뒤 `RESEARCH_SYNTHETIC_DELAY_MS=1500 python3 scripts/run_first_demo.py`로 다시 실행한다. 같은 화면에서 질문하면 오류가 표시되고 체결과 질문이 유지된다. HTTP 검사는 `python3 scripts/verify_first_demo.py --expect-timeout`으로 반복한다. 합성 데모와 인수 범위는 [첫 데모 구현 명세](FIRST_DEMO.md)에 있다.
+
+## 합성 원장과 근거 그래프 재현
+
+비어 있는 전용 PostgreSQL 데이터베이스를 준비한다. `TRADING_LEDGER_URL`에 JDBC URL을, `TRADING_LEDGER_USERNAME`과 `TRADING_LEDGER_PASSWORD`에 해당 DB의 접속 정보를 설정한다. 첫 데모 빌드가 끝난 뒤 다음 명령으로 실행한다.
+
+```sh
+TRADING_LEDGER_ENABLED=true python3 scripts/run_first_demo.py
+```
+
+별도 터미널에서 `python3 scripts/verify_synthetic_ledger.py`를 실행한다. 합성 체결 세 건과 재수신 두 건을 API로 보내 체결 세 건, 보유 5주와 수량 상충 기록 한 건을 확인한다. [데모 화면](http://127.0.0.1:5173/)의 **합성 원장**에서 체결과 보유 수량, 확인 필요 기록을 볼 수 있다. 같은 DB로 데모를 다시 실행한 뒤 `python3 scripts/verify_synthetic_ledger.py --after-restart`로 보존 결과를 확인한다. 두 명령 모두 원장 API에서 읽은 체결과 합성 공시를 사용해 동일한 근거 그래프를 두 번 생성한다.
 
 ## 로컬 Codex 하네스
 

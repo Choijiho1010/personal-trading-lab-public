@@ -1,0 +1,39 @@
+{
+  "goal": "합성 거래 원장, 체결·잔고 화면, 근거 그래프 재구축",
+  "excluded": ["실계좌", "실주문", "개인 메모", "모델 실행", "기준일 검색", "수수료·손익 계산"],
+  "research": {
+    "needed": true,
+    "findings": [
+      {
+        "url": "https://www.postgresql.org/docs/current/ddl-constraints.html",
+        "observation": "여러 열을 묶어 유일 제약을 정의할 수 있다.",
+        "application": "출처와 체결 ID의 복합 유일 제약으로 동시 재수신을 막는다.",
+        "limits": "실제 증권사가 사용하는 식별자의 범위는 미확인이다."
+      },
+      {
+        "url": "https://microsoft.github.io/graphrag/index/overview/",
+        "observation": "인덱싱은 입력에서 엔터티와 관계 등을 파생한다.",
+        "application": "합성 원장 내보내기에서 거래·종목·근거 그래프를 다시 구축한다.",
+        "limits": "이 방식은 모델의 검색 또는 답변 품질을 검증하지 않는다."
+      }
+    ]
+  },
+  "decision": {
+    "status": "confirmed",
+    "outcome": "동일 체결 키의 상충 내용은 기존 값과 잔고를 유지하며 확인 기록을 남긴다. 그래프는 합성 거래와 합성 공시만 받는다.",
+    "reason": "확정된 거래 사실을 보존하고, 공개 재현 환경에서 증권사 또는 모델 승인 없이 기능을 검증한다."
+  },
+  "contract": "contracts/synthetic-ledger.openapi.yaml과 contracts/synthetic-ledger.fixture.json을 사용한다. DB가 설정된 경우에만 원장 API가 활성화되며 기존 첫 데모 API는 유지한다. Python은 HTTP 내보내기 파일만 읽고 거래 DB에 접속하지 않는다.",
+  "scope": {
+    "root": ["contracts/synthetic-ledger.openapi.yaml", "contracts/synthetic-ledger.fixture.json", "contracts/synthetic-disclosures.fixture.json"],
+    "java": ["services/trading/"],
+    "react": ["apps/web/"],
+    "python": ["services/research/"]
+  },
+  "acceptance": [
+    {"scenario": "기존 4주 이후 동일한 4주 재수신과 동일 키 6주 상충", "expected": "원장에 4주 한 건만 남고 동일 재수신은 성공하며 상충은 409 및 확인 기록을 남긴다.", "verification": "PostgreSQL 연동 테스트에서 재수신·동시 적재·상충 기록을 조회한다."},
+    {"scenario": "별개 부분체결 매수 4주·매수 2주·매도 1주와 재시작", "expected": "체결 세 건, 잔고 5주, 재시작 후 일치하는 결과.", "verification": "새 Spring 프로세스에서 로컬 원장 API 조회를 재현한다."},
+    {"scenario": "잔고·체결·확인 필요 목록의 정상·빈 결과·실패", "expected": "브라우저에 합성 표시, 수량, 확인할 상충 기록과 오류 안내가 나타난다.", "verification": "React 테스트와 사용자 브라우저 검토용 캡처로 확인한다."},
+    {"scenario": "같은 체결 내보내기와 공시로 그래프 재구축", "expected": "노드·관계가 동일하며 모든 거래 노드는 실제 입력 체결을 가리킨다. 근거 출처·발생·수집 시각 누락은 거부한다.", "verification": "Python 그래프 테스트와 실제 원장 HTTP 내보내기를 사용해 두 번 실행한다."}
+  ]
+}

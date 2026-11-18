@@ -1,0 +1,9 @@
+{
+  "fills": [
+    {"source":"synthetic-broker","fill_id":"partial-1","symbol":"SAMPLE","side":"BUY","quantity":4,"price_krw":10000,"filled_at":"2026-11-13T00:00:00Z","collected_at":"2026-11-13T00:00:01Z","synthetic":true},
+    {"source":"synthetic-broker","fill_id":"partial-2","symbol":"SAMPLE","side":"BUY","quantity":2,"price_krw":10100,"filled_at":"2026-11-13T00:00:02Z","collected_at":"2026-11-13T00:00:03Z","synthetic":true},
+    {"source":"synthetic-broker","fill_id":"sell-1","symbol":"SAMPLE","side":"SELL","quantity":1,"price_krw":10200,"filled_at":"2026-11-13T00:00:04Z","collected_at":"2026-11-13T00:00:05Z","synthetic":true}
+  ],
+  "positions": [{"symbol":"SAMPLE","quantity":5}],
+  "conflicts": [{"source":"synthetic-broker","fill_id":"partial-1","existing_quantity":4,"received_quantity":6,"existing_price_krw":10000,"received_price_krw":10000,"existing_symbol":"SAMPLE","received_symbol":"SAMPLE","existing_side":"BUY","received_side":"BUY","existing_filled_at":"2026-11-13T00:00:00Z","received_filled_at":"2026-11-13T00:00:00Z"}]
+}
