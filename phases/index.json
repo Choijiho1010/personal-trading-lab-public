@@ -33,10 +33,13 @@
         "PR #2 first-demo commit c375289 passed pre-commit and pre-push, including the Gitleaks audit and 30 Python tests.",
         "PR #2 commit c375289 passed GitHub Actions Quality, including the React build and tests, Spring Boot build and tests, normal and timeout HTTP integration, and public history audit: https://github.com/Choijiho1010/personal-trading-lab-public/actions/runs/44192947194",
         "Codex automatic PR review completed without findings on c375289: https://github.com/Choijiho1010/personal-trading-lab-public/pull/2#issuecomment-6963178451",
-        "After adding public-repository suitability to the PR review rules, python3 scripts/validate.py and the targeted quality.py files check passed for the review instructions."
+        "After adding public-repository suitability to the PR review rules, python3 scripts/validate.py and the targeted quality.py files check passed for the review instructions.",
+        "UV_NO_CACHE=1 UV_OFFLINE=1 uv run --frozen python scripts/quality.py check passed Ruff, scaffold validation, Import Linter and 40 tests, including change spec and worker handoff checks.",
+        "In a temporary repository, git hook run --to-stdin=<refs> pre-push rejected a synthetic application change without a matching committed spec. It passed after the matching spec was committed. The worker-start and spec-change commands also passed on the matching spec."
       ],
       "pending": [
-        "AI 승인 자체를 필수 병합 게이트로 요구하는 기능은 미확인이다."
+        "AI 승인 자체를 필수 병합 게이트로 요구하는 기능은 미확인이다.",
+        "변경 명세 검사 단계의 원격 GitHub Actions 실행은 해당 변경의 PR에서 확인한다."
       ]
     },
     {
