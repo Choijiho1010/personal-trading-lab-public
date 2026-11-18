@@ -9,7 +9,12 @@ import com.personallab.trading.domain.LedgerFill;
 import com.personallab.trading.domain.LedgerRepository;
 import com.personallab.trading.domain.Position;
 import com.personallab.trading.infrastructure.ledger.PostgresLedgerRepository;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +25,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -77,6 +83,62 @@ class PostgresLedgerRepositoryTest {
         List<FillConflict> originalConflicts = ledger.conflicts();
         assertThat(originalConflicts).extracting(FillConflict::receivedQuantity).containsExactly(6);
 
+        rejectWritesAtCommit();
+
+        List<LedgerFill> failingWrites = List.of(
+                fill("partial-2", "BUY", 2, 10000, 1),
+                fill("partial-1", "BUY", 8, 10000, 0));
+        for (LedgerFill failed : failingWrites) {
+            assertThatThrownBy(() -> ledger.record(failed))
+                    .hasRootCauseInstanceOf(SQLException.class)
+                    .hasStackTraceContaining("injected ledger commit failure");
+            assertThat(ledger.fills()).containsExactly(original);
+            assertThat(ledger.positions()).containsExactly(new Position("SAMPLE", 4L));
+            assertThat(ledger.conflicts()).containsExactlyElementsOf(originalConflicts);
+        }
+    }
+
+    @Test
+    void returnsServiceUnavailableWithRequestIdWhenLedgerCommitFails() throws Exception {
+        LedgerFill original = fill("partial-1", "BUY", 4, 10000, 0);
+        ledger.record(original);
+        ledger.record(fill("partial-1", "BUY", 6, 10000, 0));
+        rejectWritesAtCommit();
+
+        try (var application = new SpringApplicationBuilder(TradingApplication.class)
+                .run("--server.address=127.0.0.1", "--server.port=0", "--trading.ledger.enabled=true",
+                        "--trading.ledger.url=" + dataSource.getUrl(),
+                        "--trading.ledger.username=" + dataSource.getUsername(),
+                        "--trading.ledger.password=" + dataSource.getPassword());
+                var client = HttpClient.newHttpClient()) {
+            String port = application.getEnvironment().getRequiredProperty("local.server.port");
+            URI uri = URI.create("http://127.0.0.1:" + port + "/api/v1/ledger/fills");
+            List<LedgerFill> failingWrites = List.of(
+                    fill("partial-2", "BUY", 2, 10000, 1),
+                    fill("partial-1", "BUY", 8, 10000, 0));
+            for (LedgerFill failed : failingWrites) {
+                String json = """
+                        {"source":"synthetic-broker","fill_id":"%s","symbol":"SAMPLE","side":"BUY",
+                         "quantity":%d,"price_krw":10000,"filled_at":"%s","collected_at":"%s","synthetic":true}
+                        """.formatted(failed.fillId(), failed.quantity(), failed.filledAt(), failed.collectedAt());
+                HttpRequest request = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(5))
+                        .header("Content-Type", "application/json")
+                        .header("Accept", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(json))
+                        .build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                assertThat(response.statusCode()).isEqualTo(503);
+                assertThat(response.body()).isEqualTo("{\"code\":\"LEDGER_UNAVAILABLE\"}");
+                assertThat(response.headers().firstValue("X-Request-ID"))
+                        .hasValueSatisfying(id -> assertThat(UUID.fromString(id).toString()).isEqualTo(id));
+                assertThat(ledger.fills()).containsExactly(original);
+                assertThat(ledger.positions()).containsExactly(new Position("SAMPLE", 4L));
+                assertThat(ledger.conflicts()).extracting(FillConflict::receivedQuantity).containsExactly(6);
+            }
+        }
+    }
+
+    private void rejectWritesAtCommit() {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         jdbc.execute("""
                 create function fail_ledger_commit() returns trigger language plpgsql as $$
@@ -93,18 +155,6 @@ class PostgresLedgerRepositoryTest {
                 create constraint trigger fail_conflict_commit after insert on ledger_fill_conflicts
                 deferrable initially deferred for each row execute function fail_ledger_commit()
                 """);
-
-        List<LedgerFill> failingWrites = List.of(
-                fill("partial-2", "BUY", 2, 10000, 1),
-                fill("partial-1", "BUY", 8, 10000, 0));
-        for (LedgerFill failed : failingWrites) {
-            assertThatThrownBy(() -> ledger.record(failed))
-                    .hasRootCauseInstanceOf(SQLException.class)
-                    .hasStackTraceContaining("injected ledger commit failure");
-            assertThat(ledger.fills()).containsExactly(original);
-            assertThat(ledger.positions()).containsExactly(new Position("SAMPLE", 4L));
-            assertThat(ledger.conflicts()).containsExactlyElementsOf(originalConflicts);
-        }
     }
 
     @Test

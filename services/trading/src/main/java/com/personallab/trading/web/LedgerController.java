@@ -13,6 +13,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.CannotCreateTransactionException;
+import org.springframework.transaction.TransactionSystemException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -58,7 +59,8 @@ public class LedgerController {
         return Map.of("conflicts", ledger(response).conflicts());
     }
 
-    @ExceptionHandler({LedgerUnavailable.class, DataAccessException.class, CannotCreateTransactionException.class})
+    @ExceptionHandler({LedgerUnavailable.class, DataAccessException.class, CannotCreateTransactionException.class,
+            TransactionSystemException.class})
     ResponseEntity<Map<String, String>> unavailable(HttpServletResponse response) {
         log.warn("request_id={} service=trading operation=ledger status=503 reason=LEDGER_UNAVAILABLE",
                 response.getHeader("X-Request-ID"));
